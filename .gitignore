@@ -1,0 +1,5 @@
+.idea/
+__pycache__/
+tesla.db
+tesla.db-shm
+tesla.db-wal

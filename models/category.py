@@ -43,7 +43,7 @@ class CategoryModel(BaseModel):
 
     @staticmethod
     def get_for_image():
-        return db.fetchall("SELECT reference, image FROM category LIMIT 100")
+        return db.fetchall("SELECT reference, image FROM category")
 
     def save(self):
         db.execute(

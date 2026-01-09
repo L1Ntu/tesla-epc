@@ -23,7 +23,6 @@ def parse_country() -> None:
     """
     parse countries
     """
-    print("-> parsing countries")
     url = "https://epcapi.tesla.com/api/countries"
 
     response = requests.get(url)
@@ -39,12 +38,12 @@ def parse_catalog() -> None:
     """
     parse catalogs
     """
-    print("-> parsing catalog")
     url = "https://epcapi.tesla.com/api/catalogs?countryCode="
     codes = db.fetchall("SELECT code FROM country")
-    for row in codes:
+    pbar = tqdm.tqdm(codes)
+    for row in pbar:
         cc = row["code"]
-        print(f"  - country = {row['code']}")
+        pbar.set_description(f"processing country {cc}")
         response = requests.get(f"{url}{cc}")
         data = response.json()
         if not data.get("success") or data["success"] is False:
@@ -65,16 +64,14 @@ def parse_category() -> None:
     """
     parse category/subcategory/system-group
     """
-    print("-> parsing category")
     url = "https://epcapi.tesla.com/api/catalogs/{catalog_reference}/categories"
 
-    catalogs = db.fetchall("SELECT id, reference FROM catalog")
-    for row in catalogs:
+    catalogs = db.fetchall("SELECT id, reference FROM catalog ORDER BY id")
+    pbar = tqdm.tqdm(catalogs)
+    for row in pbar:
         catalog_id = row["id"]
         catalog_reference = row["reference"]
-        print(f" -> parsing catalog_id={catalog_id} reference={catalog_reference}")
-        if catalog_id < 88:
-            continue
+        pbar.set_description(f"processing id = {catalog_id}, reference = {catalog_reference}")
 
         catalog_url = url
         catalog_url = catalog_url.replace("{catalog_reference}", catalog_reference)
@@ -118,12 +115,12 @@ def parse_group() -> None:
     """
     parse system-group
     """
-    print("-> parse group")
-    groups = SystemGroupModel.get_not_parsed(limit=1000)
-    for group in groups:
+    groups = SystemGroupModel.get_not_parsed(limit=100000)
+    pbar = tqdm.tqdm(groups)
+    for group in pbar:
         try:
             group_id = group["group_id"]
-            print(f"-> parsing group {group_id}")
+            pbar.set_description(f"processing group_id = {group_id}")
             url = "https://epcapi.tesla.com/api/catalogs/{catalog}/systemgroups/{group}"
             url = url.replace("{catalog}", group["catalog_reference"])
             url = url.replace("{group}", group["group_reference"])
@@ -143,12 +140,17 @@ def parse_group() -> None:
 
 
 def parse_part():
-    print("->parse part")
-    parts = SystemGroupPartModel.get_not_parsed(limit=10000)
-    for item in parts:
+    """
+    parse part data from system_group
+    :return:
+    """
+    parts = SystemGroupPartModel.get_not_parsed(limit=100000)
+    pbar = tqdm.tqdm(parts)
+    for item in pbar:
         data = json.loads(item["data"])
         catalog_ref = data["catalogExternalReference"]
         group_ref = data["externalReference"]
+        pbar.set_description(f"processing group = {group_ref}")
 
         for p in data["parts"]:
             part_id = p["partId"]
@@ -156,9 +158,6 @@ def parse_part():
             catalog_number = p["catalogPartNumber"]
             name = p["title"]
             images = []
-
-            if part_number == "N/A":
-                continue
 
             for uuid in p["packagingImageUUIDs"]:
                 images.append(
@@ -183,8 +182,6 @@ def parse_part():
                         uuid=image["uuid"],
                         url=image["url"],
                     ).save()
-            else:
-                print(f"part_id={part_id} already exists")
 
         SystemGroupPartModel.set_parsed(item["group_id"])
 
@@ -302,6 +299,10 @@ def identify_image(response: requests.Response, uuid: str, is_svg: bool) -> dict
 
 
 def init_db():
+    """
+    create sqlite tables
+    :return:
+    """
     CountryModel.create_table()
     CatalogModel.create_table()
     CategoryModel.create_table()
@@ -334,21 +335,24 @@ def main():
                         choices=["country", "catalog", "category", "group", "part", "category_image", "group_image"])
     args = parser.parse_args()
 
-    match args.action:
-        case "country":
-            parse_country()
-        case "catalog":
-            parse_catalog()
-        case "category":
-            parse_category()
-        case "group":
-            parse_group()
-        case "part":
-            parse_part()
-        case "category_image":
-            parse_category_image()
-        case "group_image":
-            parse_group_image()
+    try:
+        match args.action:
+            case "country":
+                parse_country()
+            case "catalog":
+                parse_catalog()
+            case "category":
+                parse_category()
+            case "group":
+                parse_group()
+            case "part":
+                parse_part()
+            case "category_image":
+                parse_category_image()
+            case "group_image":
+                parse_group_image()
+    except KeyboardInterrupt:
+        exit()
 
 
 if __name__ == "__main__":

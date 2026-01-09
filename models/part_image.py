@@ -24,10 +24,32 @@ class PartImageModel(BaseModel):
         )
         db.execute(
             """
+            CREATE INDEX IF NOT EXISTS idx_part_uuid
+            ON part_image(uuid)
+            """
+        )
+        db.execute(
+            """
             CREATE INDEX IF NOT EXISTS idx_part_image_is_parsed
             ON part_image (is_parsed)
             """
         )
+
+    @staticmethod
+    def get_for_image():
+        return db.fetchall(
+            """
+            SELECT
+                pi.uuid,
+                pi.url
+            FROM part_image pi WHERE pi.is_parsed = FALSE
+            GROUP BY pi.uuid
+            """
+        )
+
+    @staticmethod
+    def set_parsed(uuid):
+        db.execute("UPDATE part_image SET is_parsed = ? WHERE uuid = ?", (1, uuid))
 
     def save(self):
         db.execute(

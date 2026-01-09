@@ -1,5 +1,10 @@
+import argparse
 import requests
 import json
+import imghdr
+import mimetypes
+import os
+import tqdm
 from db import Database
 from models.country import CountryModel
 from models.catalog import CatalogModel
@@ -9,7 +14,7 @@ from models.system_group import SystemGroupModel
 from models.system_group_part import SystemGroupPartModel
 from models.part import PartModel
 from models.part_image import PartImageModel
-
+from models.image import ImageModel
 
 db = Database(db_path="tesla.db")
 
@@ -184,17 +189,116 @@ def parse_part():
         SystemGroupPartModel.set_parsed(item["group_id"])
 
 
-# def is_image_ok(path: str) -> bool:
-#     try:
-#         with Image.open(path) as img:
-#             img.verify()
-#
-#         with Image.open(path) as img:
-#             img.load()   # реальная декодировка пикселей
-#
-#         return True
-#     except Exception:
-#         return False
+def parse_category_image():
+    """
+    category image
+    only one per category, some of them not exists
+    :return:
+    """
+    data = CategoryModel.get_for_image()
+    pbar = tqdm.tqdm(data)
+    for d in pbar:
+        try:
+            uuid = str(d["reference"]).lower()
+            url = d["image"]
+            pbar.set_description(f"processing image {uuid}")
+
+            exist_path = os.path.join("image", "category", f"{uuid}.jpeg")
+            if os.path.exists(exist_path):
+                continue
+
+            response = requests.get(url)
+            response.raise_for_status()
+            image_data = identify_image(response, uuid, False)
+
+            if not image_data:
+                raise Exception("error")
+            path = os.path.join("image", "category", image_data["filename"])
+            with open(path, "wb") as f:
+                f.write(response.content)
+                ImageModel(
+                    entity="category", uuid=uuid, ext=image_data["extension"], mimetype=image_data["mimetype"],
+                    size=image_data["size"], name=image_data["filename"]
+                ).save()
+        except KeyboardInterrupt:
+            exit(0)
+        except requests.RequestException:
+            if not response.status_code == 404:
+                print(f"error while parsing {uuid}, response code = {response.status_code}")
+
+
+def parse_group_image() -> None:
+    """
+    parse group images
+    usually 2 images per group: svg + png
+    :return:
+    """
+    data = SystemGroupModel.get_for_image()
+    pbar = tqdm.tqdm(data)
+    for d in pbar:
+        try:
+            uuid = str(d["reference"]).lower()
+            j = json.loads(d["data"])
+            images = j["systemGroupImages"]
+
+            exist_path = os.path.join("image", "group", f"{uuid}.svg")
+            if os.path.exists(exist_path):
+                continue
+
+            for image in images:
+                url = image["imageURL"]
+
+                response = requests.get(url)
+                response.raise_for_status()
+                image_data = identify_image(response, uuid, image["mimetype"] == "image/svg+xml")
+
+                if not image_data:
+                    raise Exception(f"not an image, uuid = {uuid}, url = {url}")
+                path = os.path.join("image", "group", image_data["filename"])
+                with open(path, "wb") as f:
+                    f.write(response.content)
+                    ImageModel(
+                        entity="group", uuid=uuid, ext=image_data["extension"], mimetype=image_data["mimetype"],
+                        size=image_data["size"], name=image_data["filename"]
+                    ).save()
+        except KeyboardInterrupt:
+            exit(0)
+        except requests.RequestException:
+            print(f"error parsing {uuid}")
+
+
+def identify_image(response: requests.Response, uuid: str, is_svg: bool) -> dict | bool:
+    """
+    identifies if given content is valid image
+    :param response:
+    :param uuid:
+    :param is_svg:
+    :return:
+    """
+    content = response.content
+    size = len(response.content)
+
+    if is_svg:
+        return {
+            "mimetype": "image/svg+xml",
+            "size": size,
+            "extension": "svg",
+            "filename": f"{uuid}.svg"
+        }
+
+    image_type = imghdr.what(None, content)
+    if not image_type:
+        return False
+
+    mimetype = mimetypes.types_map.get(f".{image_type}", f"image/{image_type}")
+    extension = image_type
+
+    return {
+        "mimetype": mimetype,
+        "size": size,
+        "extension": extension,
+        "filename": f"{uuid}.{extension}"
+    }
 
 
 def init_db():
@@ -206,15 +310,45 @@ def init_db():
     SystemGroupPartModel.create_table()
     PartModel.create_table()
     PartImageModel.create_table()
+    ImageModel.create_table()
 
 
 def main():
     init_db()
-    # parse_country()
-    # parse_catalog()
-    # parse_category()
-    # parse_group()
-    parse_part()
+
+    usage = """
+    python3 main.py --action ACTION
+    ACTION must be in same sequence as above and be one of:
+     1. country
+     2. catalog
+     3. category
+     4. group
+     5. part
+     6. category_image
+     7. group_image
+     8. part_image
+    """
+
+    parser = argparse.ArgumentParser(usage=usage)
+    parser.add_argument("--action", required=True,
+                        choices=["country", "catalog", "category", "group", "part", "category_image", "group_image"])
+    args = parser.parse_args()
+
+    match args.action:
+        case "country":
+            parse_country()
+        case "catalog":
+            parse_catalog()
+        case "category":
+            parse_category()
+        case "group":
+            parse_group()
+        case "part":
+            parse_part()
+        case "category_image":
+            parse_category_image()
+        case "group_image":
+            parse_group_image()
 
 
 if __name__ == "__main__":

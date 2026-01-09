@@ -48,6 +48,10 @@ class SystemGroupModel(BaseModel):
         )
 
     @staticmethod
+    def get_for_image():
+        return db.fetchall("SELECT sg.reference, sg.data FROM system_group sg LIMIT 500")
+
+    @staticmethod
     def get_not_parsed(limit: int = 1000):
         return db.fetchall(
             f"""

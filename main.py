@@ -198,8 +198,11 @@ def parse_category_image() -> None:
         uuid, url = str(d["reference"]).lower(), d["image"]
         pbar.set_description(f"processing image {uuid}")
 
-        exist_path = os.path.join("image", "category", f"{uuid}.jpeg")
-        if os.path.exists(exist_path):
+        paths = [
+            os.path.join("image", "category", f"{uuid}.jpeg"),
+            os.path.join("image", "category", f"{uuid}.png")
+        ]
+        if os.path.exists(paths[0]) or os.path.exists(paths[1]):
             continue
 
         process_image("category", uuid, url, False)
@@ -219,31 +222,40 @@ def parse_group_image() -> None:
         images = j["systemGroupImages"]
         pbar.set_description(f"processing image {uuid}")
 
-        exist_path = os.path.join("image", "group", f"{uuid}.svg")
-        if os.path.exists(exist_path):
-            continue
-
         for image in images:
+            ext = "svg" if image["mimetype"] == "image/svg+xml" else "png"
+            exist_path = os.path.join("image", "group", f"{uuid}.{ext}")
+            if os.path.exists(exist_path):
+                continue
+
             url = image["imageURL"]
-            process_image("group", uuid, url, image["mimetype"] == "image/svg+xml")
+            process_image("group", uuid, url, ext == "svg")
 
 
 def parse_part_image() -> None:
     """
     parse part images
-    multiple part_id can have save uuid
+    multiple part_id can have same uuid
     :return:
     """
     data = PartImageModel.get_for_image()
     pbar = tqdm.tqdm(data)
     for item in pbar:
+        paths = [
+            os.path.join("image", "part", f"{item["uuid"]}.jpeg"),
+            os.path.join("image", "part", f"{item["uuid"]}.png")
+        ]
+
+        if os.path.exists(paths[0]) or os.path.exists(paths[1]):
+            continue
+
         uuid, url = item["uuid"], item["url"]
         pbar.set_description(f"processing image {uuid}")
-        process_image("part", uuid, url, False)
-        PartImageModel.set_parsed(uuid)
+        if process_image("part", uuid, url, False):
+            PartImageModel.set_parsed(uuid)
 
 
-def process_image(entity, uuid, url, is_svg) -> None:
+def process_image(entity, uuid, url, is_svg) -> bool:
     """
     download file, identify image, save file, save to db
     :param entity:
@@ -266,8 +278,11 @@ def process_image(entity, uuid, url, is_svg) -> None:
                 entity=entity, uuid=uuid, ext=image_data["extension"], mimetype=image_data["mimetype"],
                 size=image_data["size"], name=image_data["filename"]
             ).save()
+
+            return True
     except requests.RequestException as e:
         print(e)
+        return False
 
 
 def identify_image(response: requests.Response, uuid: str, is_svg: bool) -> dict | bool:

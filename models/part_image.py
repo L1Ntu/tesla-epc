@@ -15,10 +15,11 @@ class PartImageModel(BaseModel):
         db.execute(
             """
             CREATE TABLE IF NOT EXISTS part_image (
-                part_id INTEGER PRIMARY KEY NOT NULL,
+                part_id INTEGER NOT NULL,
+                uuid TEXT NOT NULL,
                 is_parsed INTEGER NOT NULL DEFAULT 0,
-                uuid TEXT NOT NULL ,
-                url TEXT NOT NULL
+                url TEXT NOT NULL,
+                PRIMARY KEY(part_id, uuid)
             )
             """
         )

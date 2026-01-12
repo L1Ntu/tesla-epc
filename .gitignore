@@ -1,10 +1,9 @@
 .idea/
 __pycache__/
 !.gitkeep
-image/category/*.jpeg
-image/category/*.png
-image/group/*.svg
-image/group/*.png
+image/category/*.*
+image/group/*.*
+image/part/*.*
 tesla.db
 tesla.db-shm
 tesla.db-wal

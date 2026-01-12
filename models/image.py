@@ -7,8 +7,10 @@ db = Database()
 class ImageModel(BaseModel):
     entity: str
     uuid: str
+    uuid_link: str
     ext: str
     mimetype: str
+    hash: str
     size: int
     name: str
 
@@ -18,26 +20,53 @@ class ImageModel(BaseModel):
             """
             CREATE TABLE IF NOT EXISTS image
             (
-                entity   TEXT NOT NULL,
-                uuid     TEXT NOT NULL,
-                ext      TEXT NOT NULL,
-                mimetype TEXT NOT NULL,
-                size     INT  NOT NULL,
-                name     TEXT NOT NULL,
+                entity    TEXT NOT NULL,
+                uuid      TEXT NOT NULL,
+                uuid_link TEXT NOT NULL,
+                ext       TEXT NOT NULL,
+                mimetype  TEXT NOT NULL,
+                hash      TEXT NOT NULL,
+                size      INT  NOT NULL,
+                name      TEXT NOT NULL,
                 PRIMARY KEY (entity, uuid, ext)
             )
             """
         )
 
+        db.execute("CREATE INDEX IF NOT EXISTS image_entity_hash ON image (entity, hash)")
+
     @staticmethod
-    def get_for_link():
-        return db.fetchall("SELECT i.entity, i.uuid, i.mimetype, i.name FROM image i WHERE entity != 'part'")
+    def exist_image(entity, uuid, ext):
+        if ext:
+            sql = "SELECT * FROM image WHERE entity = ? AND uuid = ? AND ext = ?"
+            params = (entity, uuid, ext)
+        else:
+            sql = "SELECT * FROM image WHERE entity = ? AND uuid = ?"
+            params = (entity, uuid)
+
+        data = db.fetchone(sql, params)
+        return True if data else False
+
+    @staticmethod
+    def get_by_hash(entity, hash, mimetype):
+        return db.fetchone(
+            """
+            SELECT *
+            FROM image
+            WHERE
+                entity = ?
+                AND hash = ?
+                AND mimetype = ?
+                AND uuid_link = ''
+            """,
+            (entity, hash, mimetype)
+        )
 
     def save(self):
         db.execute(
             """
-            INSERT OR REPLACE INTO image (entity, uuid, ext, mimetype, size, name)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT OR REPLACE INTO image (entity, uuid, uuid_link, ext, mimetype, hash, size, name)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (self.entity, self.uuid, self.ext, self.mimetype, self.size, self.name),
+            (self.entity, self.uuid, self.uuid_link, self.ext, self.mimetype, self.hash, self.size, self.name),
         )

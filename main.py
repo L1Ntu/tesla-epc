@@ -1,4 +1,6 @@
 import argparse
+import hashlib
+
 import requests
 import json
 import imghdr
@@ -17,6 +19,7 @@ from models.system_group_part import SystemGroupPartModel
 from models.part import PartModel
 from models.part_image import PartImageModel
 from models.image import ImageModel
+from models.image_link import ImageLinkModel
 
 db = Database(db_path="tesla.db")
 
@@ -205,7 +208,10 @@ def parse_category_image() -> None:
         if os.path.exists(paths[0]) or os.path.exists(paths[1]):
             continue
 
-        process_image("category", uuid, url, False)
+        if ImageLinkModel.isset_image_uuid("category", uuid):
+            continue
+
+        process_image("category", uuid, url, False, pbar)
 
 
 def parse_group_image() -> None:
@@ -227,9 +233,11 @@ def parse_group_image() -> None:
             exist_path = os.path.join("image", "group", f"{uuid}.{ext}")
             if os.path.exists(exist_path):
                 continue
+            if ImageLinkModel.isset_image_uuid("group", uuid, image["mimetype"]):
+                continue
 
             url = image["imageURL"]
-            process_image("group", uuid, url, ext == "svg")
+            process_image("group", uuid, url, ext == "svg", pbar)
 
 
 def parse_part_image() -> None:
@@ -251,17 +259,49 @@ def parse_part_image() -> None:
 
         uuid, url = item["uuid"], item["url"]
         pbar.set_description(f"processing image {uuid}")
-        if process_image("part", uuid, url, False):
+        if process_image("part", uuid, url, False, pbar):
             PartImageModel.set_parsed(uuid)
 
 
-def process_image(entity, uuid, url, is_svg) -> bool:
+def parse_image_link() -> None:
+    data = ImageModel.get_for_link()
+    pbar = tqdm.tqdm(data)
+    for item in pbar:
+        path = os.path.join("image", item["entity"], item["name"])
+        uuid = item["uuid"]
+        pbar.set_description(f"processing {item['entity']} - {uuid}")
+        if not os.path.exists(path):
+            continue
+
+        try:
+            with open(path, "rb") as file:
+                file_data = file.read()
+            sha1_hash = hashlib.sha1(file_data).hexdigest()
+            uuid_link = ImageLinkModel.isset_image_hash(item["entity"], sha1_hash)
+            if uuid_link is False:
+                ImageLinkModel(
+                    entity=item["entity"], mimetype=item["mimetype"],
+                    hash=sha1_hash, uuid_org=uuid, uuid_link=uuid
+                ).save()
+            else:
+                ImageLinkModel(
+                    entity=item["entity"], mimetype=item["mimetype"],
+                    hash=sha1_hash, uuid_org=uuid, uuid_link=uuid_link
+                ).save()
+                if uuid != uuid_link:
+                    os.remove(path)
+        except FileNotFoundError:
+            continue
+
+
+def process_image(entity, uuid, url, is_svg, pbar: tqdm) -> bool:
     """
     download file, identify image, save file, save to db
     :param entity:
     :param uuid:
     :param url:
     :param is_svg:
+    :param pbar: tqdm
     :return:
     """
     try:
@@ -281,7 +321,7 @@ def process_image(entity, uuid, url, is_svg) -> bool:
 
             return True
     except requests.RequestException as e:
-        print(e)
+        pbar.write(str(e))
         return False
 
 
@@ -333,6 +373,7 @@ def init_db() -> None:
     PartModel.create_table()
     PartImageModel.create_table()
     ImageModel.create_table()
+    ImageLinkModel.create_table()
 
 
 def main():
@@ -349,6 +390,7 @@ def main():
      6. category_image
      7. group_image
      8. part_image
+     9. image_link
     """
 
     parser = argparse.ArgumentParser(usage=usage)
@@ -357,7 +399,7 @@ def main():
         required=True,
         choices=[
             "country", "catalog", "category", "group", "part",
-            "category_image", "group_image", "part_image"
+            "category_image", "group_image", "part_image", "image_link"
         ]
     )
     args = parser.parse_args()
@@ -380,6 +422,8 @@ def main():
                 parse_group_image()
             case "part_image":
                 parse_part_image()
+            case "image_link":
+                parse_image_link()
     except KeyboardInterrupt:
         exit()
 

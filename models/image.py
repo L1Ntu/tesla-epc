@@ -29,6 +29,10 @@ class ImageModel(BaseModel):
             """
         )
 
+    @staticmethod
+    def get_for_link():
+        return db.fetchall("SELECT i.entity, i.uuid, i.mimetype, i.name FROM image i WHERE entity != 'part'")
+
     def save(self):
         db.execute(
             """

@@ -3,8 +3,7 @@ import hashlib
 
 import requests
 import json
-import imghdr
-import mimetypes
+import filetype
 import os
 import tqdm
 from requests import RequestException
@@ -327,12 +326,12 @@ def identify_image(response: requests.Response, uuid: str, is_svg: bool) -> dict
             "filename": f"{uuid}.svg"
         }
 
-    image_type = imghdr.what(None, content)
-    if not image_type:
+    guess = filetype.guess(content)
+    if not guess:
         return False
 
-    mimetype = mimetypes.types_map.get(f".{image_type}", f"image/{image_type}")
-    extension = image_type
+    mimetype = guess.mime
+    extension = "jpeg" if guess.extension == "jpg" else guess.extension
 
     return {
         "mimetype": mimetype,

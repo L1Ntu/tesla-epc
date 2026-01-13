@@ -1,4 +1,4 @@
 pydantic==2.12.5
 requests==2.32.5
 tqdm==4.67.0
-imghdr-lts==1.0.0
+filetype==1.2.0

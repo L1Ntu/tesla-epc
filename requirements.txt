@@ -1,3 +1,4 @@
+boto3
 fastapi
 uvicorn
 certifi
@@ -5,3 +6,5 @@ pydantic
 requests
 tqdm
 filetype
+dotenv
+python-dotenv

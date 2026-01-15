@@ -25,6 +25,8 @@ s3 = boto3.client(
 def upload_file(file_path: pathlib.Path):
     guess = filetype.guess(file_path.as_posix())
     content_type = guess.mime if guess else "application/octet-stream"
+    if file_path.name.endswith('svg'):
+        content_type = "image/svg+xml"
 
     s3_key = f"{args.dir}/{file_path.name}"
     print(f"uploading {file_path} -> s3://{BUCKET}/{s3_key}")

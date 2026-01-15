@@ -45,6 +45,10 @@ class CategoryModel(BaseModel):
     def get_for_image():
         return db.fetchall("SELECT reference, image FROM category")
 
+    @staticmethod
+    def get_by_catalog(id):
+        return db.fetchall("SELECT data FROM category WHERE catalog_id = ?", (id,))
+
     def save(self):
         db.execute(
             """

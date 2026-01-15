@@ -41,6 +41,10 @@ class CatalogModel(BaseModel):
             """
         )
 
+    @staticmethod
+    def get_by_country_code(code):
+        return db.fetchall("SELECT data FROM catalog c WHERE c.country_code = ?", (code,))
+
     def save(self):
         db.execute(
             "INSERT OR REPLACE INTO catalog VALUES (?, ?, ?, ?, ?, ?)",

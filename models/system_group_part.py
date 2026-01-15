@@ -24,6 +24,10 @@ class SystemGroupPartModel(BaseModel):
         )
 
     @staticmethod
+    def get_by_id(id):
+        return db.fetchone("SELECT * FROM system_group_part WHERE group_id = ?", (id,))
+
+    @staticmethod
     def get_not_parsed(limit: int = 100) -> list:
         return db.fetchall(
             f"""

@@ -7,3 +7,4 @@ image/part/*.*
 tesla.db
 tesla.db-shm
 tesla.db-wal
+.env

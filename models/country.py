@@ -23,6 +23,10 @@ class CountryModel(BaseModel):
                 )
         """)
 
+    @staticmethod
+    def get_all():
+        return db.fetchall("SELECT data FROM country")
+
     def save(self):
         db.execute(
             "INSERT OR REPLACE INTO country (code, name, data) VALUES (?, ?, ?)",

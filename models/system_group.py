@@ -48,6 +48,10 @@ class SystemGroupModel(BaseModel):
         )
 
     @staticmethod
+    def get_by_subcategory(id):
+        return db.fetchall("SELECT data FROM system_group sg WHERE sg.subcategory_id = ?", (id,))
+
+    @staticmethod
     def get_for_image():
         return db.fetchall("SELECT sg.reference, sg.data FROM system_group sg")
 

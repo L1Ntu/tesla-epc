@@ -53,3 +53,7 @@ class SubcategoryModel(BaseModel):
                 json.dumps(self.data),
             ),
         )
+
+    @staticmethod
+    def get_by_category(id):
+        return db.fetchall("SELECT data FROM subcategory WHERE category_id = ?", (id,))

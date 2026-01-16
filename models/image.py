@@ -36,6 +36,24 @@ class ImageModel(BaseModel):
         db.execute("CREATE INDEX IF NOT EXISTS image_entity_hash ON image (entity, hash)")
 
     @staticmethod
+    def get_image(entity, uuid, ext):
+        sql = """
+            SELECT
+                i.entity                      AS entity,
+                IIF(il.name, il.name, i.name) AS name
+            FROM image i
+            LEFT JOIN image il ON il.entity = i.entity AND il.uuid = i.uuid_link
+            WHERE i.entity = ?
+              AND i.uuid = ?
+        """
+        params = (entity, uuid)
+        if ext:
+            sql += "AND i.ext = ?"
+            params = (entity, uuid, ext)
+
+        return db.fetchone(sql, params)
+
+    @staticmethod
     def exist_image(entity, uuid, ext):
         if ext:
             sql = "SELECT * FROM image WHERE entity = ? AND uuid = ? AND ext = ?"

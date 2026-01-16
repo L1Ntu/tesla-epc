@@ -47,7 +47,7 @@ class CategoryModel(BaseModel):
 
     @staticmethod
     def get_by_catalog(id):
-        return db.fetchall("SELECT data FROM category WHERE catalog_id = ?", (id,))
+        return db.fetchall("SELECT reference, data FROM category WHERE catalog_id = ?", (id,))
 
     def save(self):
         db.execute(

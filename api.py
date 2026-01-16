@@ -1,7 +1,10 @@
 import json
+import os
 
 import requests
 from fastapi import FastAPI, HTTPException, Request
+
+from models.image import ImageModel
 from response.country import CountryResponse
 from response.catalog import CatalogResponse
 from response.category import CategoryResponse
@@ -15,12 +18,17 @@ from models.category import CategoryModel
 from models.subcategory import SubcategoryModel
 from models.system_group import SystemGroupModel
 from models.system_group_part import SystemGroupPartModel
+from dotenv import load_dotenv
 
 app = FastAPI(
     title="Tesla EPC API",
     version="2026.1.0",
     swagger_ui_parameters={"syntaxHighlight": {"theme": "obsidian"}}
 )
+
+load_dotenv()
+BUCKET = os.getenv("S3_BUCKET")
+REGION = os.getenv("AWS_REGION")
 
 
 @app.get("/vin/{vin}", response_model=VinResponse)
@@ -66,7 +74,12 @@ async def get_category(catalog_id: int):
         raise HTTPException(404)
     for row in rows:
         data = json.loads(row["data"])
-        response.append(CategoryResponse(**data))
+        model = CategoryResponse(**data)
+        image = ImageModel.get_image("category", row["reference"], None)
+        if image:
+            model.image = generate_s3_url(image["entity"], image["name"])
+
+        response.append(model)
 
     return response
 
@@ -106,3 +119,7 @@ async def get_system_group_part(group_id: int):
     data = json.loads(system_group["data"])
     print(json.dumps(data, indent=2))
     return SystemGroupPartResponse(**data)
+
+
+def generate_s3_url(entity, key):
+    return f"https://{BUCKET}.s3.{REGION}.amazonaws.com/{entity}/{key}"

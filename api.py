@@ -1,12 +1,14 @@
 import json
 
-from fastapi import FastAPI, HTTPException
+import requests
+from fastapi import FastAPI, HTTPException, Request
 from response.country import CountryResponse
 from response.catalog import CatalogResponse
 from response.category import CategoryResponse
 from response.subcategory import SubcategoryResponse
 from response.system_group import SystemGroupResponse
 from response.system_group_part import SystemGroupPartResponse
+from response.vin import VinResponse
 from models.country import CountryModel
 from models.catalog import CatalogModel
 from models.category import CategoryModel
@@ -14,7 +16,23 @@ from models.subcategory import SubcategoryModel
 from models.system_group import SystemGroupModel
 from models.system_group_part import SystemGroupPartModel
 
-app = FastAPI(title="Tesla EPC API", version="1.0.0")
+app = FastAPI(
+    title="Tesla EPC API",
+    version="2026.1.0",
+    swagger_ui_parameters={"syntaxHighlight": {"theme": "obsidian"}}
+)
+
+
+@app.get("/vin/{vin}", response_model=VinResponse)
+async def get_vin(vin):
+    try:
+        response = requests.get(f"https://epcapi.tesla.com/api/catalogs?vin={vin}")
+        response.raise_for_status()
+        content = json.loads(response.text)
+
+        return VinResponse(**content["responseObject"][0])
+    except Exception as e:
+        raise HTTPException(400, "Catalog not available for this VIN")
 
 
 @app.get("/country", response_model=list[CountryResponse])

@@ -39,8 +39,8 @@ class ImageModel(BaseModel):
     def get_image(entity, uuid, ext):
         sql = """
             SELECT
-                i.entity                      AS entity,
-                IIF(il.name, il.name, i.name) AS name
+                i.entity                                                 AS entity,
+                CASE WHEN i.uuid_link != '' THEN il.name ELSE i.name END AS name
             FROM image i
             LEFT JOIN image il ON il.entity = i.entity AND il.uuid = i.uuid_link
             WHERE i.entity = ?

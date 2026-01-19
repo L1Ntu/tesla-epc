@@ -33,16 +33,21 @@ class ImageModel(BaseModel):
             """
         )
 
-        db.execute("CREATE INDEX IF NOT EXISTS image_entity_hash ON image (entity, hash)")
+        db.execute(
+            "CREATE INDEX IF NOT EXISTS image_entity_hash ON image (entity, hash)"
+        )
 
     @staticmethod
-    def get_image(entity, uuid, ext):
+    def get_image(entity: str | None, uuid: str | None, ext=None, mimetype=None):
         sql = """
             SELECT
                 i.entity                                                 AS entity,
                 CASE WHEN i.uuid_link != '' THEN il.name ELSE i.name END AS name
             FROM image i
-            LEFT JOIN image il ON il.entity = i.entity AND il.uuid = i.uuid_link
+            LEFT JOIN image il
+                ON il.entity = i.entity
+                AND il.uuid = i.uuid_link
+                AND il.mimetype = i.mimetype
             WHERE i.entity = ?
               AND i.uuid = ?
         """
@@ -50,6 +55,11 @@ class ImageModel(BaseModel):
         if ext:
             sql += "AND i.ext = ?"
             params = (entity, uuid, ext)
+        if mimetype:
+            sql += "AND i.mimetype = ?"
+            params = (entity, uuid, mimetype)
+
+        print(sql)
 
         return db.fetchone(sql, params)
 
@@ -77,7 +87,7 @@ class ImageModel(BaseModel):
                 AND mimetype = ?
                 AND uuid_link = ''
             """,
-            (entity, hash, mimetype)
+            (entity, hash, mimetype),
         )
 
     def save(self):
@@ -86,5 +96,14 @@ class ImageModel(BaseModel):
             INSERT OR REPLACE INTO image (entity, uuid, uuid_link, ext, mimetype, hash, size, name)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (self.entity, self.uuid, self.uuid_link, self.ext, self.mimetype, self.hash, self.size, self.name),
+            (
+                self.entity,
+                self.uuid,
+                self.uuid_link,
+                self.ext,
+                self.mimetype,
+                self.hash,
+                self.size,
+                self.name,
+            ),
         )

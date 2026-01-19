@@ -23,7 +23,7 @@ from dotenv import load_dotenv
 app = FastAPI(
     title="Tesla EPC API",
     version="2026.1.0",
-    swagger_ui_parameters={"syntaxHighlight": {"theme": "obsidian"}}
+    swagger_ui_parameters={"syntaxHighlight": {"theme": "obsidian"}},
 )
 
 load_dotenv()
@@ -75,9 +75,9 @@ async def get_category(catalog_id: int):
     for row in rows:
         data = json.loads(row["data"])
         model = CategoryResponse(**data)
-        image = ImageModel.get_image("category", row["reference"], None)
-        if image:
-            model.image = generate_s3_url(image["entity"], image["name"])
+        db_image = ImageModel.get_image("category", row["reference"])
+        if db_image:
+            model.image = generate_s3_url(db_image["entity"], db_image["name"])
 
         response.append(model)
 
@@ -97,7 +97,7 @@ async def get_subcategory(category_id: int):
     return response
 
 
-@app.get('/system-group/{subcategory_id}', response_model=list[SystemGroupResponse])
+@app.get("/system-group/{subcategory_id}", response_model=list[SystemGroupResponse])
 async def get_group(subcategory_id: int):
     response = []
     rows = SystemGroupModel.get_by_subcategory(subcategory_id)
@@ -105,19 +105,28 @@ async def get_group(subcategory_id: int):
         raise HTTPException(404)
     for row in rows:
         data = json.loads(row["data"])
-        response.append(SystemGroupResponse(**data))
+        model = SystemGroupResponse(**data)
+        model.images = ""
+        if len(model.systemGroupImages) > 0:
+            for key, image in enumerate(model.systemGroupImages):
+                db_image = ImageModel.get_image("group", model.externalReference, None, image.mimetype)
+                if not db_image:
+                    continue
+
+                model.systemGroupImages[key].imageURL = generate_s3_url(db_image["entity"], db_image["name"])
+
+        response.append(model)
 
     return response
 
 
-@app.get('/system-group-part/{group_id}', response_model=SystemGroupPartResponse)
+@app.get("/system-group-part/{group_id}", response_model=SystemGroupPartResponse)
 async def get_system_group_part(group_id: int):
     system_group = SystemGroupPartModel.get_by_id(group_id)
     if system_group is None:
         raise HTTPException(404)
 
     data = json.loads(system_group["data"])
-    print(json.dumps(data, indent=2))
     return SystemGroupPartResponse(**data)
 
 

@@ -6,7 +6,7 @@ class SystemGroupImage(BaseModel):
     mimetype: Optional[str]
     imageURL: Optional[str]
     fileName: Optional[str]
-    uuid: Optional[str] = ''
+    uuid: Optional[str] = ""
     attributes: Optional[str]
     extendedAttributes: List[Any]
 
@@ -37,7 +37,7 @@ class SystemGroupResponse(BaseModel):
     categoryTitleOriginal: Optional[str]
     categoryTitle: Optional[str]
 
-    images: Optional[str] = ''
+    images: Optional[str] = ""
 
     parts: List[Any]
     showPrice: bool

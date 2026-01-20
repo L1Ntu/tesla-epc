@@ -59,8 +59,6 @@ class ImageModel(BaseModel):
             sql += "AND i.mimetype = ?"
             params = (entity, uuid, mimetype)
 
-        print(sql)
-
         return db.fetchone(sql, params)
 
     @staticmethod

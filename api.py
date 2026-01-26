@@ -107,13 +107,12 @@ async def get_group(subcategory_id: int):
         data = json.loads(row["data"])
         model = SystemGroupResponse(**data)
         model.images = ""
-        if len(model.systemGroupImages) > 0:
-            for key, image in enumerate(model.systemGroupImages):
-                db_image = ImageModel.get_image("group", model.externalReference, None, image.mimetype)
-                if not db_image:
-                    continue
+        for key, image in enumerate(model.systemGroupImages):
+            db_image = ImageModel.get_image("group", model.externalReference, None, image.mimetype)
+            if not db_image:
+                continue
 
-                model.systemGroupImages[key].imageURL = generate_s3_url(db_image["entity"], db_image["name"])
+            model.systemGroupImages[key].imageURL = generate_s3_url(db_image["entity"], db_image["name"])
 
         response.append(model)
 
@@ -127,7 +126,15 @@ async def get_system_group_part(group_id: int):
         raise HTTPException(404)
 
     data = json.loads(system_group["data"])
-    return SystemGroupPartResponse(**data)
+    model = SystemGroupPartResponse(**data)
+    for key, image in enumerate(model.systemGroupImages):
+        db_image = ImageModel.get_image("group", model.externalReference, None, image.mimetype)
+        if not db_image:
+            continue
+
+        model.systemGroupImages[key].imageURL = generate_s3_url(db_image["entity"], db_image["name"])
+
+    return model
 
 
 def generate_s3_url(entity, key):

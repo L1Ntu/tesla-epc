@@ -1,9 +1,8 @@
 import json
 import os
-
+import uuid
 import requests
 from fastapi import FastAPI, HTTPException, Request
-
 from models.image import ImageModel
 from response.country import CountryResponse
 from response.catalog import CatalogResponse
@@ -11,6 +10,7 @@ from response.category import CategoryResponse
 from response.subcategory import SubcategoryResponse
 from response.system_group import SystemGroupResponse
 from response.system_group_part import SystemGroupPartResponse
+from response.system_group_part import SystemGroupImage as SystemGroupPartImageResponse
 from response.vin import VinResponse
 from models.country import CountryModel
 from models.catalog import CatalogModel
@@ -29,6 +29,8 @@ app = FastAPI(
 load_dotenv()
 BUCKET = os.getenv("S3_BUCKET")
 REGION = os.getenv("AWS_REGION")
+NO_IMAGE_PNG_FILE = "no-image.png"
+NO_IMAGE_SVG_FILE = "no-image.svg"
 
 
 @app.get("/vin/{vin}", response_model=VinResponse)
@@ -133,6 +135,28 @@ async def get_system_group_part(group_id: int):
             continue
 
         model.systemGroupImages[key].imageURL = generate_s3_url(db_image["entity"], db_image["name"])
+
+    if len(model.systemGroupImages) == 0:
+        model.systemGroupImages.append(
+            SystemGroupPartImageResponse(
+                mimetype="image/png",
+                imageURL=generate_s3_url("none", "no-image.png"),
+                fileName="no-image.png",
+                uuid=str(uuid.uuid4()),
+                attributes="",
+                extendedAttributes=[]
+            )
+        )
+        model.systemGroupImages.append(
+            SystemGroupPartImageResponse(
+                mimetype="image/svg+xml",
+                imageURL=generate_s3_url("none", "no-image.svg"),
+                fileName="no-image.svg",
+                uuid=str(uuid.uuid4()),
+                attributes="",
+                extendedAttributes=[]
+            )
+        )
 
     return model
 

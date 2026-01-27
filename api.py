@@ -116,6 +116,9 @@ async def get_group(subcategory_id: int):
 
             model.systemGroupImages[key].imageURL = generate_s3_url(db_image["entity"], db_image["name"])
 
+        if len(model.systemGroupImages) == 0:
+            model.systemGroupImages = fill_empty_system_group_images()
+
         response.append(model)
 
     return response
@@ -137,29 +140,30 @@ async def get_system_group_part(group_id: int):
         model.systemGroupImages[key].imageURL = generate_s3_url(db_image["entity"], db_image["name"])
 
     if len(model.systemGroupImages) == 0:
-        model.systemGroupImages.append(
-            SystemGroupPartImageResponse(
-                mimetype="image/svg+xml",
-                imageURL=generate_s3_url("none", "no-image.svg"),
-                fileName="no-image.svg",
-                uuid=str(uuid.uuid4()),
-                attributes="",
-                extendedAttributes=[]
-            )
-        )
-        model.systemGroupImages.append(
-            SystemGroupPartImageResponse(
-                mimetype="image/png",
-                imageURL=generate_s3_url("none", "no-image.png"),
-                fileName="no-image.png",
-                uuid=str(uuid.uuid4()),
-                attributes="",
-                extendedAttributes=[]
-            )
-        )
+        model.systemGroupImages = fill_empty_system_group_images()
 
     return model
 
 
-def generate_s3_url(entity, key):
+def generate_s3_url(entity, key) -> str:
     return f"https://{BUCKET}.s3.{REGION}.amazonaws.com/{entity}/{key}"
+
+def fill_empty_system_group_images() -> list:
+    return [
+        SystemGroupPartImageResponse(
+            mimetype="image/svg+xml",
+            imageURL=generate_s3_url("none", "no-image.svg"),
+            fileName="no-image.svg",
+            uuid=str(uuid.uuid4()),
+            attributes="",
+            extendedAttributes=[]
+        ),
+        SystemGroupPartImageResponse(
+            mimetype="image/png",
+            imageURL=generate_s3_url("none", "no-image.png"),
+            fileName="no-image.png",
+            uuid=str(uuid.uuid4()),
+            attributes="",
+            extendedAttributes=[]
+        )
+    ]

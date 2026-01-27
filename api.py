@@ -139,9 +139,9 @@ async def get_system_group_part(group_id: int):
     if len(model.systemGroupImages) == 0:
         model.systemGroupImages.append(
             SystemGroupPartImageResponse(
-                mimetype="image/png",
-                imageURL=generate_s3_url("none", "no-image.png"),
-                fileName="no-image.png",
+                mimetype="image/svg+xml",
+                imageURL=generate_s3_url("none", "no-image.svg"),
+                fileName="no-image.svg",
                 uuid=str(uuid.uuid4()),
                 attributes="",
                 extendedAttributes=[]
@@ -149,9 +149,9 @@ async def get_system_group_part(group_id: int):
         )
         model.systemGroupImages.append(
             SystemGroupPartImageResponse(
-                mimetype="image/svg+xml",
-                imageURL=generate_s3_url("none", "no-image.svg"),
-                fileName="no-image.svg",
+                mimetype="image/png",
+                imageURL=generate_s3_url("none", "no-image.png"),
+                fileName="no-image.png",
                 uuid=str(uuid.uuid4()),
                 attributes="",
                 extendedAttributes=[]

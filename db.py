@@ -6,7 +6,7 @@ class Database:
     _instance = None
     _lock = Lock()
 
-    def __new__(cls, db_path="tesla.db"):
+    def __new__(cls, db_path="db/tesla.db"):
         if not cls._instance:
             with cls._lock:
                 if not cls._instance:

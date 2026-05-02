@@ -1,6 +1,7 @@
 import argparse
 import os
 import pathlib
+
 import boto3
 import filetype
 from dotenv import load_dotenv
@@ -25,7 +26,7 @@ s3 = boto3.client(
 def upload_file(file_path: pathlib.Path):
     guess = filetype.guess(file_path.as_posix())
     content_type = guess.mime if guess else "application/octet-stream"
-    if file_path.name.endswith('svg'):
+    if file_path.name.endswith("svg"):
         content_type = "image/svg+xml"
 
     s3_key = f"{args.dir}/{file_path.name}"
@@ -37,15 +38,15 @@ def upload_file(file_path: pathlib.Path):
         Key=s3_key,
         ExtraArgs={
             "ContentType": content_type,
-            "CacheControl": "public, max-age=31536000, immutable"
-        }
+            "CacheControl": "public, max-age=31536000, immutable",
+        },
     )
 
 
 def main():
     print(BASE_DIR)
     for file in BASE_DIR.rglob("*"):
-        if file.name == '.gitkeep' or not file.suffix:
+        if file.name == ".gitkeep" or not file.suffix:
             continue
         upload_file(file)
 

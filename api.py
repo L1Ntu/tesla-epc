@@ -2,23 +2,24 @@ import json
 import os
 import uuid
 import requests
+import logging
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
-from models.image import ImageModel
-from response.country import CountryResponse
-from response.catalog import CatalogResponse
-from response.category import CategoryResponse
-from response.subcategory import SubcategoryResponse
-from response.system_group import SystemGroupResponse
-from response.system_group_part import SystemGroupPartResponse
-from response.system_group_part import SystemGroupImage as SystemGroupPartImageResponse
-from response.vin import VinResponse
-from models.country import CountryModel
 from models.catalog import CatalogModel
 from models.category import CategoryModel
+from models.country import CountryModel
+from models.image import ImageModel
 from models.subcategory import SubcategoryModel
 from models.system_group import SystemGroupModel
 from models.system_group_part import SystemGroupPartModel
-from dotenv import load_dotenv
+from response.catalog import CatalogResponse
+from response.category import CategoryResponse
+from response.country import CountryResponse
+from response.subcategory import SubcategoryResponse
+from response.system_group import SystemGroupResponse
+from response.system_group_part import SystemGroupImage as SystemGroupPartImageResponse
+from response.system_group_part import SystemGroupPartResponse
+from response.vin import VinResponse
 
 app = FastAPI(
     title="Tesla EPC API",
@@ -42,6 +43,8 @@ async def get_vin(vin):
 
         return VinResponse(**content["responseObject"][0])
     except Exception as e:
+        logger = logging.getLogger("uvicorn.error")
+        logger.exception(e)
         raise HTTPException(400, "Catalog not available for this VIN")
 
 
@@ -110,11 +113,15 @@ async def get_group(subcategory_id: int):
         model = SystemGroupResponse(**data)
         model.images = ""
         for key, image in enumerate(model.systemGroupImages):
-            db_image = ImageModel.get_image("group", model.externalReference, None, image.mimetype)
+            db_image = ImageModel.get_image(
+                "group", model.externalReference, None, image.mimetype
+            )
             if not db_image:
                 continue
 
-            model.systemGroupImages[key].imageURL = generate_s3_url(db_image["entity"], db_image["name"])
+            model.systemGroupImages[key].imageURL = generate_s3_url(
+                db_image["entity"], db_image["name"]
+            )
 
         if len(model.systemGroupImages) == 0:
             model.systemGroupImages = fill_empty_system_group_images()
@@ -133,11 +140,15 @@ async def get_system_group_part(group_id: int):
     data = json.loads(system_group["data"])
     model = SystemGroupPartResponse(**data)
     for key, image in enumerate(model.systemGroupImages):
-        db_image = ImageModel.get_image("group", model.externalReference, None, image.mimetype)
+        db_image = ImageModel.get_image(
+            "group", model.externalReference, None, image.mimetype
+        )
         if not db_image:
             continue
 
-        model.systemGroupImages[key].imageURL = generate_s3_url(db_image["entity"], db_image["name"])
+        model.systemGroupImages[key].imageURL = generate_s3_url(
+            db_image["entity"], db_image["name"]
+        )
 
     if len(model.systemGroupImages) == 0:
         model.systemGroupImages = fill_empty_system_group_images()
@@ -148,6 +159,7 @@ async def get_system_group_part(group_id: int):
 def generate_s3_url(entity, key) -> str:
     return f"https://{BUCKET}.s3.{REGION}.amazonaws.com/{entity}/{key}"
 
+
 def fill_empty_system_group_images() -> list:
     return [
         SystemGroupPartImageResponse(
@@ -156,7 +168,7 @@ def fill_empty_system_group_images() -> list:
             fileName="no-image.svg",
             uuid=str(uuid.uuid4()),
             attributes="",
-            extendedAttributes=[]
+            extendedAttributes=[],
         ),
         SystemGroupPartImageResponse(
             mimetype="image/png",
@@ -164,6 +176,6 @@ def fill_empty_system_group_images() -> list:
             fileName="no-image.png",
             uuid=str(uuid.uuid4()),
             attributes="",
-            extendedAttributes=[]
-        )
+            extendedAttributes=[],
+        ),
     ]

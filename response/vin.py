@@ -24,7 +24,7 @@ class VinResponse(BaseModel):
     countryCode: str
     catalogModelTypeId: int
     catalogModelTypeDescription: str
-    localizedCatalogModelTypeDescription: str
+    localizedCatalogModelTypeDescription: Optional[str]
     generation: str
     startDate: str
     endDate: Optional[str]
@@ -33,5 +33,5 @@ class VinResponse(BaseModel):
     pageFlow: Optional[str]
     restrictedPermissionID: Optional[int]
     externalReference: str
-    catalogUserSetting: CatalogUserSetting
-    catalogUserSettings: Any
+    catalogUserSetting: CatalogUserSetting = None
+    catalogUserSettings: Any = None

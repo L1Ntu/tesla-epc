@@ -1,6 +1,8 @@
 import json
+from typing import Any, Dict
+
 from pydantic import BaseModel
-from typing import Dict, Any
+
 from db import Database
 
 db = Database()
@@ -47,7 +49,9 @@ class CategoryModel(BaseModel):
 
     @staticmethod
     def get_by_catalog(id):
-        return db.fetchall("SELECT reference, data FROM category WHERE catalog_id = ?", (id,))
+        return db.fetchall(
+            "SELECT reference, data FROM category WHERE catalog_id = ?", (id,)
+        )
 
     def save(self):
         db.execute(

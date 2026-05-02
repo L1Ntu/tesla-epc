@@ -1,23 +1,23 @@
 import argparse
 import hashlib
-
-import requests
 import json
-import filetype
 import os
+
+import filetype
+import requests
 import tqdm
 from requests import RequestException
 
 from db import Database
-from models.country import CountryModel
 from models.catalog import CatalogModel
 from models.category import CategoryModel
+from models.country import CountryModel
+from models.image import ImageModel
+from models.part import PartModel
+from models.part_image import PartImageModel
 from models.subcategory import SubcategoryModel
 from models.system_group import SystemGroupModel
 from models.system_group_part import SystemGroupPartModel
-from models.part import PartModel
-from models.part_image import PartImageModel
-from models.image import ImageModel
 
 db = Database(db_path="tesla.db")
 
@@ -74,7 +74,9 @@ def parse_category() -> None:
     for row in pbar:
         catalog_id = row["id"]
         catalog_reference = row["reference"]
-        pbar.set_description(f"processing id = {catalog_id}, reference = {catalog_reference}")
+        pbar.set_description(
+            f"processing id = {catalog_id}, reference = {catalog_reference}"
+        )
 
         catalog_url = url
         catalog_url = catalog_url.replace("{catalog_reference}", catalog_reference)
@@ -202,7 +204,7 @@ def parse_category_image() -> None:
 
         paths = [
             os.path.join("image", entity, f"{uuid}.jpeg"),
-            os.path.join("image", entity, f"{uuid}.png")
+            os.path.join("image", entity, f"{uuid}.png"),
         ]
         if os.path.exists(paths[0]) or os.path.exists(paths[1]):
             continue
@@ -253,7 +255,7 @@ def parse_part_image() -> None:
         entity, uuid, url = "part", item["uuid"], item["url"]
         paths = [
             os.path.join("image", entity, f"{uuid}.jpeg"),
-            os.path.join("image", entity, f"{uuid}.png")
+            os.path.join("image", entity, f"{uuid}.png"),
         ]
 
         if os.path.exists(paths[0]) or os.path.exists(paths[1]):
@@ -284,7 +286,9 @@ def process_image(entity, uuid, url, is_svg, pbar: tqdm) -> bool:
         if not image_data:
             raise RequestException(f"not a image, uuid = {uuid}, url = {url}")
 
-        original_image = ImageModel.get_by_hash(entity, image_data["sha1"], image_data["mimetype"])
+        original_image = ImageModel.get_by_hash(
+            entity, image_data["sha1"], image_data["mimetype"]
+        )
         if original_image and entity != "part":
             uuid_link = original_image["uuid"]
         else:
@@ -294,9 +298,14 @@ def process_image(entity, uuid, url, is_svg, pbar: tqdm) -> bool:
                 f.write(response.content)
 
         ImageModel(
-            entity=entity, uuid=uuid, uuid_link=uuid_link,
-            ext = image_data["extension"], mimetype = image_data["mimetype"],
-            hash = image_data["sha1"], size = image_data["size"], name = image_data["filename"]
+            entity=entity,
+            uuid=uuid,
+            uuid_link=uuid_link,
+            ext=image_data["extension"],
+            mimetype=image_data["mimetype"],
+            hash=image_data["sha1"],
+            size=image_data["size"],
+            name=image_data["filename"],
         ).save()
 
         return True
@@ -323,7 +332,7 @@ def identify_image(response: requests.Response, uuid: str, is_svg: bool) -> dict
             "size": size,
             "sha1": sha1,
             "extension": "svg",
-            "filename": f"{uuid}.svg"
+            "filename": f"{uuid}.svg",
         }
 
     guess = filetype.guess(content)
@@ -338,7 +347,7 @@ def identify_image(response: requests.Response, uuid: str, is_svg: bool) -> dict
         "size": size,
         "sha1": sha1,
         "extension": extension,
-        "filename": f"{uuid}.{extension}"
+        "filename": f"{uuid}.{extension}",
     }
 
 
@@ -379,9 +388,15 @@ def main():
         "--action",
         required=True,
         choices=[
-            "country", "catalog", "category", "group", "part",
-            "category_image", "group_image", "part_image"
-        ]
+            "country",
+            "catalog",
+            "category",
+            "group",
+            "part",
+            "category_image",
+            "group_image",
+            "part_image",
+        ],
     )
     args = parser.parse_args()
 

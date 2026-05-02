@@ -4,7 +4,7 @@ __pycache__/
 image/category/*.*
 image/group/*.*
 image/part/*.*
-tesla.db
-tesla.db-shm
-tesla.db-wal
+db/tesla.db
+db/tesla.db-shm
+db/tesla.db-wal
 .env

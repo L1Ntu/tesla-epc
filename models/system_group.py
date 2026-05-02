@@ -1,6 +1,8 @@
 import json
+from typing import Any, Dict
+
 from pydantic import BaseModel
-from typing import Dict, Any
+
 from db import Database
 
 db = Database()
@@ -49,7 +51,9 @@ class SystemGroupModel(BaseModel):
 
     @staticmethod
     def get_by_subcategory(id):
-        return db.fetchall("SELECT data FROM system_group sg WHERE sg.subcategory_id = ?", (id,))
+        return db.fetchall(
+            "SELECT data FROM system_group sg WHERE sg.subcategory_id = ?", (id,)
+        )
 
     @staticmethod
     def get_for_image():

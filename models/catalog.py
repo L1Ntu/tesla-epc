@@ -1,6 +1,8 @@
 import json
-from pydantic import BaseModel
 from typing import Any, Dict
+
+from pydantic import BaseModel
+
 from db import Database
 
 db = Database()
@@ -43,7 +45,9 @@ class CatalogModel(BaseModel):
 
     @staticmethod
     def get_by_country_code(code):
-        return db.fetchall("SELECT data FROM catalog c WHERE c.country_code = ?", (code,))
+        return db.fetchall(
+            "SELECT data FROM catalog c WHERE c.country_code = ?", (code,)
+        )
 
     def save(self):
         db.execute(

@@ -1,6 +1,8 @@
 import json
-from pydantic import BaseModel
 from typing import Any, Dict
+
+from pydantic import BaseModel
+
 from db import Database
 
 db = Database()

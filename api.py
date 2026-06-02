@@ -1,10 +1,12 @@
 import json
+import logging
 import os
 import uuid
+
 import requests
-import logging
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException
+
 from models.catalog import CatalogModel
 from models.category import CategoryModel
 from models.country import CountryModel

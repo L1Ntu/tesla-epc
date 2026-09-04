@@ -31,7 +31,7 @@ class VinResponse(BaseModel):
     isExternal: bool
     displayType: Optional[str]
     pageFlow: Optional[str]
-    restrictedPermissionID: Optional[int]
+    restrictedPermissionID: Optional[int] = None
     externalReference: str
     catalogUserSetting: CatalogUserSetting = None
     catalogUserSettings: Any = None
